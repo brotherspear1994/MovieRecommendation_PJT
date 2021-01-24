@@ -16,10 +16,11 @@ vue/cli 4.5.8
 
 | 팀원 이름 | 업무 분담                                                    |
 | --------- | ------------------------------------------------------------ |
-| 신상훈    | 추천 알고리즘 작성 & Account 인증 기능 & Database 구축 & Follow, Like 기능 & CSS and Bootstrap |
-| 이형창    | Django Modeling & Community 기능 구현 & 전체적인 Vue Front-end 디자인 주도 & CSS and Bootstrap |
+| 신상훈    | 추천 알고리즘 작성 & Account 인증 기능 & Movie Data load & Follow, Like 기능 & CSS and Bootstrap |
+| 이형창    | 추천 알고리즘 작성 & Django 데이터베이스 Modeling & Community 기능 구현 & 전체적인 Vue Front-end 디자인 주도 & CSS and Bootstrap |
 
-- 모든 팀원이 모든 기능 및 업무에 관여
+- 모든 팀원이 프론트앤드& 백앤드 기능 및 업무에 관여
+- 학습을 목표로 하는 프로젝트 특성상, 프론트앤드와 백앤드를 업무분담을 별도로 나누어 하지 않았습니다.
 
 
 
@@ -778,395 +779,410 @@ user정보를 응답으로 받아도 password는 알 수 없도록 password에 `
     
 
 
-    ```python
-    @api_view(['GET', 'POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def community_list_create(request):
-      if request.method == 'GET':
-        communities = Community.objects.all()
-        serializer = CommunityListSerializer(communities, many=True)
-        return Response(serializer.data)
-      else:
-        serializer = CommunityListSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-          serializer.save(user=request.user)
-          return Response(serializer.data, status=status.HTTP_201_CREATED)
-    ```
-    
-    커뮤니티 정보를 불러오고, 글을 작성하는 community_list_create 함수이다.
-    
-    GET 요청 시 모든 커뮤니티 정보를 가져오고, POST 요청에서 글을 작성한다.
+```python
+@api_view(['GET', 'POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def community_list_create(request):
+  if request.method == 'GET':
+    communities = Community.objects.all()
+    serializer = CommunityListSerializer(communities, many=True)
+    return Response(serializer.data)
+  else:
+    serializer = CommunityListSerializer(data=request.data)
+    if serializer.is_valid(raise_exception=True):
+      serializer.save(user=request.user)
+
+# 커뮤니티 정보를 불러오고, 글을 작성하는 community_list_create 함수이다.
+# GET 요청 시 모든 커뮤니티 정보를 가져오고, POST 요청에서 글을 작성한다.
+```
 
 
 ​    
 
 
-    ```python
-    @api_view(['GET'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def community_detail(request, community_pk):
-      community = get_object_or_404(Community, pk=community_pk)
-    
-      serializer = CommunityListSerializer(community)
-      return Response(serializer.data)
-    ```
-    
-    커뮤니티 게시글의 상세 정보를 확인하는 community_detail 함수이다.
+```python
+@api_view(['GET'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def community_detail(request, community_pk):
+  community = get_object_or_404(Community, pk=community_pk)
+
+  serializer = CommunityListSerializer(community)
+  return Response(serializer.data)
+
+
+# 커뮤니티 게시글의 상세 정보를 확인하는 community_detail 함수이다.
+```
 
 
 ​    
 
-    ```python
-    @api_view(['GET'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def comment_list(request, community_pk):
-        community = get_object_or_404(Community, pk=community_pk)
-        comments = community.comment_set.all()
-        serializer = CommentSerializer(comments, many=True)
-        return Response(serializer.data)
-    ```
-    
-    커뮤니티 특정 게시글의 모든 댓글을 조회하는 comment_list 함수이다.
+```python
+@api_view(['GET'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def comment_list(request, community_pk):
+    community = get_object_or_404(Community, pk=community_pk)
+    comments = community.comment_set.all()
+    serializer = CommentSerializer(comments, many=True)
+    return Response(serializer.data)
+
+
+# 커뮤니티 특정 게시글의 모든 댓글을 조회하는 comment_list 함수이다.
+```
 
 
 ​    
 
-    ```python
-    @api_view(['POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def create_comment(request, community_pk):
-        community = get_object_or_404(Community, pk=community_pk)
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-    
-            serializer.save(user=request.user, community=community)
-    
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-    ```
-    
-    커뮤니티 특정 게시글에 댓글을 작성하는 create_comment함수이다.
+```python
+@api_view(['POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def create_comment(request, community_pk):
+    community = get_object_or_404(Community, pk=community_pk)
+    serializer = CommentSerializer(data=request.data)
+    if serializer.is_valid(raise_exception=True):
 
+        serializer.save(user=request.user, community=community)
 
-​    
-
-    ```python
-    @api_view(['PUT', 'DELETE'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def community_update_delete(request, community_pk):
-      community = get_object_or_404(Community, pk=community_pk)
-    
-      if not request.user.communities.filter(pk=community_pk).exists():
-        return Response({'message': '권한이 없습니다.'})
-    
-      if request.method == 'PUT':
-          serializer = CommunityListSerializer(community, data=request.data)
-          if serializer.is_valid(raise_exception=True):
-              serializer.save(user=request.user)
-              return Response(serializer.data)
-      else:
-          community.delete()
-          return Response({ 'id': community_pk })
-    ```
-    
-    커뮤니티 글을 수정 및 삭제하는 community_update_delete 함수이다.
-
-
-​    
-
-    ```python
-    @api_view(['DELETE'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def comment_delete(request, community_pk, comment_pk):
-      community = get_object_or_404(Community, pk=community_pk)
-      comment = community.comment_set.get(pk=comment_pk)
-    
-      if not request.user.comments.filter(pk=comment_pk).exists():
-        return Response({'message': '권한이 없습니다.'})
-      else:
-        comment.delete()
-        return Response({ 'id': comment_pk })
-    ```
-    
-    커뮤니티 댓글을 삭제하는 comment_delete 함수이다.
-
-
-​    
-
-    ```python
-    @api_view(['GET', 'POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def review_list_create(request, movie_pk):
-      if request.method == 'GET':
-        reviews = Review.objects.all().filter(movie_id=movie_pk)
-        serializer = ReviewListSerializer(reviews, many=True)
-        return Response(serializer.data)
-      else:
-        serializer = ReviewListSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-          movie = get_object_or_404(Movie, pk=request.data.get('movie'))
-    
-          pre_point = movie.vote_average * movie.vote_count
-          pre_count = movie.vote_count
-    
-          point = pre_point+request.data.get('rank')
-          count = movie.vote_count + 1
-          new_vote_average = round(point/count, 2)
-    
-          movie.vote_average = new_vote_average
-          movie.vote_count = count
-          movie.save()
-            
-          serializer.save(user=request.user)
-          return Response(serializer.data, status=status.HTTP_201_CREATED)
-    ```
-    
-    해당하는 영화에 대한 모든 리뷰를 조회하고, 리뷰를 작성하는 review_list_create 함수이다.
-    
-    특정 영화에 대한 리뷰를 조회하기 위해 `movie_pk`를 이용한다.
-    
-    리뷰 작성 시, 부여하는 평점을 영화 데이터에 반영하기 위해, 기존에 영화가 가지고 있던 `vote_average`와 `vote_count`를 이용해 기존 총 평점을 계산하고, 부여받은 평점을 더한뒤, `vote_count`를 1 증가시켜 그 값으로 나누어 평점을 변경한다.
-
-
-​    
-
-    ```python
-    @api_view(['GET'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def review_comment_list(request, review_pk):
-      review = get_object_or_404(Review, pk=review_pk)
-      comments = review.reviewcomment_set.all()
-      serializer = ReviewCommentSerializer(comments, many=True)
-      return Response(serializer.data)
-    ```
-    
-    특정 리뷰에 대한 모든 댓글을 조회하는 review_comment_list 함수이다.
-
-
-​    
-
-    ```python
-    @api_view(['POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def create_review_comment(request, review_pk):
-      review = get_object_or_404(Review, pk=review_pk)
-      serializer = ReviewCommentSerializer(data=request.data)
-      if serializer.is_valid(raise_exception=True):
-        serializer.save(user=request.user, review=review)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    ```
-    
-    특정 리뷰에 댓글을 작성하는 create_review_comment 함수이다.
+
+
+# 커뮤니티 특정 게시글에 댓글을 작성하는 create_comment함수이다.
+```
 
 
 ​    
 
-    ```python
-    @api_view(['PUT', 'DELETE'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def review_update_delete(request, review_pk):
-      review = get_object_or_404(Review, pk=review_pk)
-      if not request.user.reviews.filter(pk=review_pk).exists():
-        return Response({'message': '권한이 없습니다.'})
-    
-      if request.method == 'PUT':
-        serializer = ReviewListSerializer(review, data=request.data)
-        
-        if serializer.is_valid(raise_exception=True):
-          movie = get_object_or_404(Movie, pk=request.data.get('movie'))
-          pre_point = movie.vote_average * (movie.vote_count - 1)
-          pre_count = movie.vote_count - 1
-          point = pre_point+request.data.get('rank')
-          count = movie.vote_count
-          new_vote_average = round(point/count, 2)
-          movie.vote_average = new_vote_average
-          movie.vote_count = count
-          movie.save()
+```python
+@api_view(['PUT', 'DELETE'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def community_update_delete(request, community_pk):
+  community = get_object_or_404(Community, pk=community_pk)
+
+  if not request.user.communities.filter(pk=community_pk).exists():
+    return Response({'message': '권한이 없습니다.'})
+
+  if request.method == 'PUT':
+      serializer = CommunityListSerializer(community, data=request.data)
+      if serializer.is_valid(raise_exception=True):
           serializer.save(user=request.user)
           return Response(serializer.data)
-    
-      else:
-        review = get_object_or_404(Review, pk=review_pk)
-        movie = get_object_or_404(Movie, pk=review.movie_id)
-        pre_point = movie.vote_average * (movie.vote_count)
-        pre_count = movie.vote_count
-        point = pre_point - review.rank
-        count = movie.vote_count-1
-        new_vote_average = round(point/count, 2)
-        movie.vote_average = new_vote_average
-        movie.vote_count = count
-        movie.save()
-        review.delete()
-        return Response({ 'id': review_pk })
-    ```
-    
-    특정 리뷰 수정 및 삭제하는 review_update_delete 함수이다. 리뷰의 수정 및 삭제 동작에서도 영화 평점을 변경해주어야하기 때문에, 알고리즘을 사용하였다.
+  else:
+      community.delete()
+      return Response({ 'id': community_pk })
+
+
+# 커뮤니티 글을 수정 및 삭제하는 community_update_delete 함수이다.
+```
 
 
 ​    
 
-    ```python
-    @api_view(['DELETE'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def review_comment_delete(request, review_pk, review_comment_pk):
-      review = get_object_or_404(Review, pk=review_pk)
-      comment = review.reviewcomment_set.get(pk=review_comment_pk)
-      if not request.user.review_comments.filter(pk=review_comment_pk).exists():
-        return Response({'message': '권한이 없습니다.'})
-    
-      else:
-        comment.delete()
-        return Response({ 'id': review_comment_pk })
-    ```
-    
-    특정 리뷰 댓글을 삭제하는 review_comment_delete 함수이다.
+```python
+@api_view(['DELETE'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def comment_delete(request, community_pk, comment_pk):
+  community = get_object_or_404(Community, pk=community_pk)
+  comment = community.comment_set.get(pk=comment_pk)
+
+  if not request.user.comments.filter(pk=comment_pk).exists():
+    return Response({'message': '권한이 없습니다.'})
+  else:
+    comment.delete()
+    return Response({ 'id': comment_pk })
+
+# 커뮤니티 댓글을 삭제하는 comment_delete 함수이다.
+```
 
 
 ​    
 
-    - ↓↓ 영화 추천 알고리즘이 포함되어 있습니다. ↓↓
+```python
+@api_view(['GET', 'POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def review_list_create(request, movie_pk):
+  if request.method == 'GET':
+    reviews = Review.objects.all().filter(movie_id=movie_pk)
+    serializer = ReviewListSerializer(reviews, many=True)
+    return Response(serializer.data)
+  else:
+    serializer = ReviewListSerializer(data=request.data)
+    if serializer.is_valid(raise_exception=True):
+      movie = get_object_or_404(Movie, pk=request.data.get('movie'))
+
+      pre_point = movie.vote_average * movie.vote_count
+      pre_count = movie.vote_count
+
+      point = pre_point+request.data.get('rank')
+      count = movie.vote_count + 1
+      new_vote_average = round(point/count, 2)
+
+      movie.vote_average = new_vote_average
+      movie.vote_count = count
+      movie.save()
+        
+      serializer.save(user=request.user)
+      return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+'''
+ 해당하는 영화에 대한 모든 리뷰를 조회하고, 리뷰를 작성하는 review_list_create 함수이다.
+
+ 특정 영화에 대한 리뷰를 조회하기 위해 `movie_pk`를 이용한다.
+
+
+ 리뷰 작성 시, 부여하는 평점을 영화 데이터에 반영하기 위해, 기존에 영화가 가지고 있던 `vote_average`
+ 와 `vote_count`를 이용해 기존 총 평점을 계산하고, 부여받은 평점을 더한뒤, `vote_count`를 1 증가시 켜 그 값으로 나누어 평점을 변경한다.
+'''
+```
+
+
+​    
+
+```python
+@api_view(['GET'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def review_comment_list(request, review_pk):
+  review = get_object_or_404(Review, pk=review_pk)
+  comments = review.reviewcomment_set.all()
+  serializer = ReviewCommentSerializer(comments, many=True)
+  return Response(serializer.data)
+
+
+# 특정 리뷰에 대한 모든 댓글을 조회하는 review_comment_list 함수이다.
+```
+
+
+​    
+
+```python
+@api_view(['POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def create_review_comment(request, review_pk):
+  review = get_object_or_404(Review, pk=review_pk)
+  serializer = ReviewCommentSerializer(data=request.data)
+  if serializer.is_valid(raise_exception=True):
+    serializer.save(user=request.user, review=review)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# 특정 리뷰에 댓글을 작성하는 create_review_comment 함수이다.
+```
+
+
+​    
+
+```python
+@api_view(['PUT', 'DELETE'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def review_update_delete(request, review_pk):
+  review = get_object_or_404(Review, pk=review_pk)
+  if not request.user.reviews.filter(pk=review_pk).exists():
+    return Response({'message': '권한이 없습니다.'})
+
+  if request.method == 'PUT':
+    serializer = ReviewListSerializer(review, data=request.data)
     
-    ```python
-    @api_view(['POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def recommend(request):
-      favorite_movies = Movie.objects.all().order_by('-vote_average')[:30]
-      serializer1 = MovieSerializer(favorite_movies, many=True)
-      shortest_movies = Movie.objects.all().order_by('runtime')[30:60]
-      serializer2 = MovieSerializer(shortest_movies, many=True)
-      # 리뷰 기반 장르 추천
-      users_movies = []
-      # 좋아요 기반
-      users_movies2 = []
-      reviews = Review.objects.all()
-      for review in reviews:
-        movie = Movie.objects.get(pk=review.movie_id)
-        if not movie in users_movies:
-          users_movies.append(movie)
-    
-      if users_movies:
-        serializer = MovieSerializer(users_movies[0])
-        genre = serializer.data.get('genres')[0]
-        genre_name = Genre.objects.get(id=genre)
-        idx = 1
-        while len(users_movies) < 30:
-          movie = Movie.objects.get(pk=idx)
-          ser = MovieSerializer(movie)
-          if ser.data.get('genres')[0] == genre and movie not in users_movies:
-            users_movies.append(movie)
-          idx += 1
-          if idx == 979:
-            users_movies = Movie.objects.all().order_by('release_date')[:30]
-      
-      else:
+    if serializer.is_valid(raise_exception=True):
+      movie = get_object_or_404(Movie, pk=request.data.get('movie'))
+      pre_point = movie.vote_average * (movie.vote_count - 1)
+      pre_count = movie.vote_count - 1
+      point = pre_point+request.data.get('rank')
+      count = movie.vote_count
+      new_vote_average = round(point/count, 2)
+      movie.vote_average = new_vote_average
+      movie.vote_count = count
+      movie.save()
+      serializer.save(user=request.user)
+      return Response(serializer.data)
+
+  else:
+    review = get_object_or_404(Review, pk=review_pk)
+    movie = get_object_or_404(Movie, pk=review.movie_id)
+    pre_point = movie.vote_average * (movie.vote_count)
+    pre_count = movie.vote_count
+    point = pre_point - review.rank
+    count = movie.vote_count-1
+    new_vote_average = round(point/count, 2)
+    movie.vote_average = new_vote_average
+    movie.vote_count = count
+    movie.save()
+    review.delete()
+    return Response({ 'id': review_pk })
+
+
+# 특정 리뷰 수정 및 삭제하는 review_update_delete 함수이다. 리뷰의 수정 및 삭제 동작에서도 영화 평점을 변경해주어야하기 때문에, 알고리즘을 사용하였다.
+```
+
+
+​    
+
+```python
+@api_view(['DELETE'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def review_comment_delete(request, review_pk, review_comment_pk):
+  review = get_object_or_404(Review, pk=review_pk)
+  comment = review.reviewcomment_set.get(pk=review_comment_pk)
+  if not request.user.review_comments.filter(pk=review_comment_pk).exists():
+    return Response({'message': '권한이 없습니다.'})
+
+  else:
+    comment.delete()
+    return Response({ 'id': review_comment_pk })
+
+
+# 특정 리뷰 댓글을 삭제하는 review_comment_delete 함수이다.
+```
+
+
+​    
+
+```python
+# - ↓↓ 영화 추천 알고리즘이 포함되어 있습니다. ↓↓
+
+@api_view(['POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def recommend(request):
+  favorite_movies = Movie.objects.all().order_by('-vote_average')[:30]
+  serializer1 = MovieSerializer(favorite_movies, many=True)
+  shortest_movies = Movie.objects.all().order_by('runtime')[30:60]
+  serializer2 = MovieSerializer(shortest_movies, many=True)
+  # 리뷰 기반 장르 추천
+  users_movies = []
+  # 좋아요 기반
+  users_movies2 = []
+  reviews = Review.objects.all()
+  for review in reviews:
+    movie = Movie.objects.get(pk=review.movie_id)
+    if not movie in users_movies:
+      users_movies.append(movie)
+
+  if users_movies:
+    serializer = MovieSerializer(users_movies[0])
+    genre = serializer.data.get('genres')[0]
+    genre_name = Genre.objects.get(id=genre)
+    idx = 1
+    while len(users_movies) < 30:
+      movie = Movie.objects.get(pk=idx)
+      ser = MovieSerializer(movie)
+      if ser.data.get('genres')[0] == genre and movie not in users_movies:
+        users_movies.append(movie)
+      idx += 1
+      if idx == 979:
         users_movies = Movie.objects.all().order_by('release_date')[:30]
-    
-      like_movies = request.data.get('like_movies')
-      for like_movie in like_movies:
-        movie = get_object_or_404(Movie, pk=like_movie)
-        if not movie in users_movies2:
-          users_movies2.append(movie)
-    
-      serializer3 = MovieSerializer(users_movies, many=True)
-      serializer4 = MovieSerializer(users_movies2, many=True) 
-      
-      return Response([serializer1.data, serializer2.data, serializer3.data, serializer4.data])
-    ```
-    
-    영화 추천 페이지에서 다양한 방식으로 영화를 추천해주는 recommend 함수이다.
-    
-    전체 영화 데이터를 사용해, 평점이 높은 순 30개 배열 , 상영시간이 짧은 순 30개 배열을 하나씩 생성한다.
-    
-    또한 리뷰 및 좋아요 기반 추천 영화를 담을 배열을 생성한다.
-    
-    - 리뷰 기반 추천 알고리즘
-    
-      전체 리뷰 데이터를 조회한 뒤, 리뷰가 가지고 있는 영화를 겹치지 않게 리뷰 기반 추천 배열에 넣는다. (30개까지) 30개를 채우지 못 했다면, 처음으로 담긴 영화의 장르 정보를 가져오고, 배열이 30개가 될 때까지 모든 영화 정보를 조회하며 겹치지 않는 장르가 같은 영화를 배열에 추가한다. 모든 데이터를 조회할 때까지 영화를 채우지 못했을 시, 개봉날짜가 최근인 영화를 추천한다.
-    
-    - 좋아요 기반 추천 알고리즘
-    
-      users_info 함수에서 내가 좋아요 누른 영화를 좋아요 누른 유저들이 좋아요를 누른 영화 id값을 받아왔다. id 값을 이용해 영화 데이터를 찾아 추천 배열에 담는다.
-    
-    만들어진 각 배열을 serialize하여 응답으로 보내준다.
+  
+  else:
+    users_movies = Movie.objects.all().order_by('release_date')[:30]
+
+  like_movies = request.data.get('like_movies')
+  for like_movie in like_movies:
+    movie = get_object_or_404(Movie, pk=like_movie)
+    if not movie in users_movies2:
+      users_movies2.append(movie)
+
+  serializer3 = MovieSerializer(users_movies, many=True)
+  serializer4 = MovieSerializer(users_movies2, many=True) 
+  
+  return Response([serializer1.data, serializer2.data, serializer3.data, serializer4.data])
+
+'''
+영화 추천 페이지에서 다양한 방식으로 영화를 추천해주는 recommend 함수이다.
+
+전체 영화 데이터를 사용해, 평점이 높은 순 30개 배열 , 상영시간이 짧은 순 30개 배열을 하나씩 생성한다.
+
+또한 리뷰 및 좋아요 기반 추천 영화를 담을 배열을 생성한다.
+
+- 리뷰 기반 추천 알고리즘
+
+  전체 리뷰 데이터를 조회한 뒤, 리뷰가 가지고 있는 영화를 겹치지 않게 리뷰 기반 추천 배열에 넣는다. (30개까지) 30개를 채우지 못 했다면, 처음으로 담긴 영화의 장르 정보를 가져오고, 배열이 30개가 될 때까지 모든 영화 정보를 조회하며 겹치지 않는 장르가 같은 영화를 배열에 추가한다. 모든 데이터를 조회할 때까지 영화를 채우지 못했을 시, 개봉날짜가 최근인 영화를 추천한다.
+
+- 좋아요 기반 추천 알고리즘
+
+  users_info 함수에서 내가 좋아요 누른 영화를 좋아요 누른 유저들이 좋아요를 누른 영화 id값을 받아왔다. id 값을 이용해 영화 데이터를 찾아 추천 배열에 담는다.
+
+만들어진 각 배열을 serialize하여 응답으로 보내준다.
+'''
+```
 
 
 ​    
 
-    ```python
-    @api_view(['POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def movie_like(request, my_pk, movie_title):
-      movie = get_object_or_404(Movie, title=movie_title)
-      me = get_object_or_404(get_user_model(), pk=my_pk)
-      if me.like_movies.filter(pk=movie.pk).exists():
-          me.like_movies.remove(movie.pk)
-          liking = False
-          
-      else:
-          me.like_movies.add(movie.pk)
-          liking = True
+```python
+@api_view(['POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def movie_like(request, my_pk, movie_title):
+  movie = get_object_or_404(Movie, title=movie_title)
+  me = get_object_or_404(get_user_model(), pk=my_pk)
+  if me.like_movies.filter(pk=movie.pk).exists():
+      me.like_movies.remove(movie.pk)
+      liking = False
       
-      return Response(liking)
-    ```
-    
-    특정 영화에 좋아요를 하는 movie_like 함수이다.
+  else:
+      me.like_movies.add(movie.pk)
+      liking = True
+  
+  return Response(liking)
+
+
+# 특정 영화에 좋아요를 하는 movie_like 함수이다.
+```
 
 
 ​    
 
-    ```python
-    @api_view(['POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def my_movie_like(request, my_pk):
-      me = get_object_or_404(get_user_model(), pk=my_pk)
-      data = []
-      movies = request.data
-      for movie_pk in movies:
-        movie = get_object_or_404(Movie, pk=movie_pk)
-        serializer = MovieSerializer(movie)
-        data.append(serializer.data)
-      
-      return Response(data)
-    ```
-    
-    내가 좋아요 한 영화들을 보내주는 my_movie_like 함수이다.
+```python
+@api_view(['POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def my_movie_like(request, my_pk):
+  me = get_object_or_404(get_user_model(), pk=my_pk)
+  data = []
+  movies = request.data
+  for movie_pk in movies:
+    movie = get_object_or_404(Movie, pk=movie_pk)
+    serializer = MovieSerializer(movie)
+    data.append(serializer.data)
+  
+  return Response(data)
+
+
+# 내가 좋아요 한 영화들을 보내주는 my_movie_like 함수이다.
+```
 
 
 ​    
 
-    ```python
-    @api_view(['POST'])
-    @authentication_classes([JSONWebTokenAuthentication])
-    @permission_classes([IsAuthenticated])
-    def like_movie_users(request, my_pk):
-      users = []
-      movies = request.data.get('movies')
-      for movie in movies:
-        movie = get_object_or_404(Movie, pk=movie)
-        serializer = MovieSerializer(movie)
-        for user in serializer.data.get('like_users'):
-          if user not in users:
-            users.append(user)
-    
-      return Response(users)
-    ```
-    
-    특정 영화를 좋아요 한 유저들의 id 값을 받아오는 like_movie_users 함수이다. 이 함수로 얻은 값을 users_info 로 보내주어, 그 유저들이 좋아요를 누른 영화 id 값을 얻을 수 있다.
+```python
+@api_view(['POST'])
+@authentication_classes([JSONWebTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def like_movie_users(request, my_pk):
+  users = []
+  movies = request.data.get('movies')
+  for movie in movies:
+    movie = get_object_or_404(Movie, pk=movie)
+    serializer = MovieSerializer(movie)
+    for user in serializer.data.get('like_users'):
+      if user not in users:
+        users.append(user)
+
+  return Response(users)
+
+
+# 특정 영화를 좋아요 한 유저들의 id 값을 받아오는 like_movie_users 함수이다. 이 함수로 얻은 값을 users_info 로 보내주어, 그 유저들이 좋아요를 누른 영화 id 값을 얻을 수 있다.
+```
 
   
+
 
 
 
@@ -1192,7 +1208,7 @@ accounts/admin.py & movies/admin.py 에 명세서에서 요구하는 영화에 �
 
 결론적으로 데이터 기반 반응형 웹사이트를 아예 바닥부터 시작해 만들어 냈다는 생각에 매우 뿌듯한 프로젝트였다. 결과물을 보니 처음 예상했던 것보다 기능적으로나 디자인적으로나 더 괜찮게 결과물이 나와 기분이 좋았다.
 
-나와 나의 팀원 상훈이 형 둘 다 프론트 앤드와 백앤드를 같이 작업했다. 굳이 나누자면 그 중 신상훈 팀원은 백엔드를 주도했고 나는 프론트앤드 부분을 주도했다고 할 수 있었다.
+나와 나의 팀원 상훈이 형 둘 다 프론트 앤드와 백앤드를 같이 작업했다. 
 
 DRF(Django Rest Framework)와 Vue.js를 함께 사용해 DRF는 서버(백엔드)를, Vue는 웹페이지(프론트 엔드)역할로 각각의 프레임워크르 분담해 사용했는데, 중간중간 쉽지 않은 점이 많았다. 지금까지 배운 Django와 Vue의 기초적인 개념만을 활용해서는 페이지 구성에 한계가 있었기 때문에 웹페이지를 위한 니즈나, 오류가 생길 때마다 구글링과 교수님과의 질문을 통해 적극적으로 해결하려 했던 것 같다. 다행스럽고 뿌듯한 건 목표로 하는 기능이나 디자인은 문제가 생길 때 마다 대부분은 어떻게든 해결해 나갔던 것 같다. 
 
